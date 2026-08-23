@@ -22,9 +22,10 @@ Note on naming: the product was originally proposed to the client as "ArtDecor H
 - Floor-plan upload and automated recognition (walls, doors, windows) via a third-party recognition service, with **mandatory user confirmation/adjustment of real dimensions before catalog items can be placed** in the design.
 - Flat-plan gallery (pre-configured floor plans, organized by house series/building type/square footage/tags) and a public Design Projects gallery (community-shared designs, duplicable per subscription tier).
 - Product catalog: browse/search/filter individual products and curated design packs; product detail pages; "place in interior" and "buy" actions.
+- Favorites: bookmark/unbookmark catalog items and view them in a Favorites list with status (pending / used-in-project / ordered).
 - Admin-managed catalog CRUD (manual entry, CSV import, pricing rules, brand/priority placement) — centralized to internal Admin roles only.
 - Project management: save, duplicate, edit, export (PDF/image), share via link, and publish as a public design.
-- Cart and checkout via the Bitrix24 payment module, single currency.
+- Cart and checkout via a custom Rumica-built checkout form that collects and tokenizes payment details client-side and calls Bitrix24 Payment APIs directly (server-to-server), single currency.
 - "My Orders" page — order/purchase history, order status, and access to receipts/invoices, sourced from Bitrix24 CRM order/deal data.
 - Admin panel: dashboard (KPIs, recent activity), user management, catalog management, public-design moderation, basic reports/analytics.
 - Analytics/tracking: internal usage tracking plus external analytics integration (Google Analytics / Mixpanel).
@@ -38,6 +39,7 @@ Note on naming: the product was originally proposed to the client as "ArtDecor H
 - Multi-currency and multi-language support (MVP is single-currency, single-language per the original proposal's Discovery assumptions — no Q&A decision reopened this, so it remains as originally scoped).
 - Marketplace for finished design solutions, B2B brand-partnership tooling, and advertising placements (part of the long-term monetization model, not MVP functionality).
 - Apple/iOS OAuth (Google is the only social login provider in MVP).
+- **Self-service payment-method management** (viewing, adding, canceling, or updating a stored payment method). MVP handles subscription payment as a one-time charge per FR-21/UC-8, with no in-app payment-method management; if a client needs to change their payment method, this is support-handled or done by re-subscribing manually.
 
 ## Business Requirements
 - BR-1: Enable non-specialist users to plan a room layout and furnish it with real, purchasable products, reducing the gap between inspiration and purchase.
@@ -68,25 +70,26 @@ Note on naming: the product was originally proposed to the client as "ArtDecor H
 - FR-13: The system SHALL let users browse, search, and filter the product catalog by category, dimensions, and style, and view a product detail page (images, specs, pricing).
 - FR-14: The system SHALL allow a user to place a catalog product directly into an active design from the product detail page ("Place in Interior") or from within the planner.
 - FR-15: The system SHALL allow Admin roles (Catalog Manager and above) to create, read, update, and delete products manually and via CSV import, and to configure pricing and brand/priority placement rules.
+- FR-16: The system SHALL allow users to bookmark/unbookmark catalog items and view them in a Favorites list, showing each item's current status (pending / used-in-project / ordered).
 
 **Project Management**
-- FR-16: The system SHALL allow users to save, duplicate, update, and delete their own projects, subject to tier limits.
-- FR-17: The system SHALL allow users to export a project as an image or PDF and to share it via a direct link.
-- FR-18: The system SHALL allow users to mark a project as public, making it visible in the Design Projects gallery for other users to view and (per tier) duplicate.
+- FR-17: The system SHALL allow users to save, duplicate, update, and delete their own projects, subject to tier limits.
+- FR-18: The system SHALL allow users to export a project as an image or PDF and to share it via a direct link.
+- FR-19: The system SHALL allow users to mark a project as public, making it visible in the Design Projects gallery for other users to view and (per tier) duplicate.
 
 **Commerce**
-- FR-19: The system SHALL allow users to add individual products or entire design packs to a cart and complete checkout via the Bitrix24 payment module, in a single currency.
-- FR-20: The system SHALL update the user's subscription tier automatically upon successful subscription payment via Bitrix24.
-- FR-21: The system SHALL provide a "My Orders" page listing the user's past orders with status and access to the corresponding receipt/invoice, sourced from Bitrix24 CRM order/deal records.
+- FR-20: The system SHALL allow users to add individual products or entire design packs to a cart and complete checkout via a custom Rumica-built checkout form that collects and tokenizes payment details client-side and calls Bitrix24 Payment APIs directly (server-to-server), in a single currency.
+- FR-21: The system SHALL update the user's subscription tier automatically upon successful subscription payment via Bitrix24.
+- FR-22: The system SHALL provide a "My Orders" page listing the user's past orders with status and access to the corresponding receipt/invoice, sourced from Bitrix24 CRM order/deal records.
 
 **Admin Panel**
-- FR-22: The system SHALL provide an admin dashboard showing KPIs, recent projects, and most-used items.
-- FR-23: The system SHALL allow Admin roles to view, assign roles to, deactivate, and ban users (User Manager and Super Admin).
-- FR-24: The system SHALL allow Admin roles to approve/feature public designs (project moderation).
-- FR-25: The system SHALL allow Admin roles to download usage reports.
+- FR-23: The system SHALL provide an admin dashboard showing KPIs, recent projects, and most-used items.
+- FR-24: The system SHALL allow Admin roles to view, assign roles to, deactivate, and ban users (User Manager and Super Admin).
+- FR-25: The system SHALL allow Admin roles to approve/feature public designs (project moderation).
+- FR-26: The system SHALL allow Admin roles to download usage reports.
 
 **Analytics**
-- FR-26: The system SHALL track internal usage events (project creation, item usage, time in planner) and forward equivalent events to an external analytics service (Google Analytics and/or Mixpanel).
+- FR-27: The system SHALL track internal usage events (project creation, item usage, time in planner) and forward equivalent events to an external analytics service (Google Analytics and/or Mixpanel).
 
 ## Non-Functional Requirements
 No project-specific compliance, data-residency, or scale targets were provided by the client (per Q&A: standard NFRs only, no special constraints). The following are general best-practice placeholders, to be refined once real load and infrastructure decisions are made during architecture:
@@ -100,9 +103,9 @@ No project-specific compliance, data-residency, or scale targets were provided b
 - **Authentication & User Management**: registration, login (email/password + Google OAuth), password recovery, profile, subscription tier state.
 - **Room Planner (Design Constructor)**: 2D planning canvas, entry points, floor-plan upload/recognition/dimension-confirmation flow, item placement.
 - **Flat Plans & Design Projects Catalogs**: browsing/filtering of pre-built floor-plan templates and public community designs.
-- **Product Catalog**: browsing, product detail, admin CRUD, pricing/priority rules.
+- **Product Catalog**: browsing, product detail, admin CRUD, pricing/priority rules; includes Favorites (bookmarking catalog items and viewing their pending/used-in-project/ordered status).
 - **Project Management**: save/duplicate/update/delete, export, share, publish.
-- **E-Commerce**: cart, checkout, subscription payment, via Bitrix24; "My Orders" history.
+- **E-Commerce**: cart, checkout via a custom Rumica-built checkout form calling Bitrix24 Payment APIs directly, subscription payment; "My Orders" history.
 - **Admin Panel**: dashboard, user management, catalog management, project moderation, reports.
 - **Analytics & Tracking**: internal event tracking + external analytics integration.
 - **Integration/Bridge Layer**: thin custom services connecting the front end to Bitrix24 and the floor-plan recognition vendor (see Presumed Architecture Direction).
@@ -185,12 +188,12 @@ No project-specific compliance, data-residency, or scale targets were provided b
 **Main scenario:**
 1. User adds one or more products (individually or as part of a design pack) to the cart.
 2. User reviews the order summary and proceeds to checkout.
-3. System routes payment through the Bitrix24 payment module.
+3. User completes a custom Rumica-built checkout form, which collects and tokenizes payment details client-side and submits them to the Commerce Bridge, which calls Bitrix24 Payment APIs directly (server-to-server) to authorize and capture payment.
 4. On successful payment, system creates/updates the corresponding order/deal in Bitrix24 CRM and confirms the order to the user.
 **Alternative scenario:**
 1. Payment fails or is declined; system returns the user to checkout with an error and preserves the cart contents.
 **Post-conditions:** A completed order exists in Bitrix24 CRM and is visible to the user via "My Orders" (UC-7).
-**Assumptions:** Single currency, Bitrix24-only payment gateway for MVP (per Q&A decision #2); Shopify/multi-gateway support is Post-MVP.
+**Assumptions:** Single currency, Bitrix24-only payment processing for MVP (per Q&A decision #2); Shopify/multi-gateway support is Post-MVP. Checkout is a custom Rumica-built form, not the Bitrix24-hosted payment widget/redirect (per architecture-round Q&A decision).
 
 ### UC-7: View order history ("My Orders")
 **Description:** As a user, when I want to check on a past purchase, then I can view my order history with status and receipts, so that I have visibility into my transactions without contacting support.
@@ -232,6 +235,20 @@ No project-specific compliance, data-residency, or scale targets were provided b
 **Post-conditions:** Catalog, user, and published-content state reflects the admin's changes.
 **Assumptions:** No external Seller role exists in MVP (per Q&A decision #6); all catalog management is performed by internal Admin roles only.
 
+### UC-10: Bookmark and view favorites
+**Description:** As a user, when I find a catalog item I'm interested in, then I can bookmark it and later view it in my Favorites list with its current status, so that I can track and revisit items I'm considering without losing them in the catalog.
+**Roles:** End User (Free/Paid)
+**Pre-conditions:** User is logged in; the item exists in the product catalog.
+**Main scenario:**
+1. User bookmarks an item from the catalog listing or the product detail page.
+2. User navigates to the Favorites page to view their bookmarked items.
+3. For each item, the system derives and displays a status: "used-in-project" if the item has been placed into one of the user's active projects, "ordered" if the item appears in a completed Bitrix24 order for that user, or "pending" if neither applies.
+4. User selects "See in catalog" or "Details" on a favorited item to navigate back to the catalog listing or product detail page.
+**Alternative scenario:**
+1. User unbookmarks an item from the catalog, product detail page, or the Favorites list itself; the item is removed from the Favorites list.
+**Post-conditions:** The user's Favorites list reflects their current bookmarks and each item's up-to-date status.
+**Assumptions:** An item's status is derived, not separately maintained — priority is ordered > used-in-project > pending when both conditions could apply, though in practice an ordered item is expected to also be used-in-project.
+
 ## User Flows
 
 ### Floor-plan upload → confirmed design (main flow)
@@ -252,7 +269,7 @@ No project-specific compliance, data-residency, or scale targets were provided b
 ### Browse-to-purchase (main flow)
 1. User browses the product catalog or an active design.
 2. User adds one or more products/design packs to the cart.
-3. User proceeds to checkout and completes payment via Bitrix24.
+3. User proceeds to checkout, completing a custom Rumica-built checkout form that collects and tokenizes payment details client-side and calls Bitrix24 Payment APIs directly (server-to-server) to authorize and capture payment.
 4. Order is created in Bitrix24 CRM; user sees an order confirmation.
 5. User later revisits "My Orders" to check status and access the receipt.
 
@@ -272,7 +289,7 @@ No project-specific compliance, data-residency, or scale targets were provided b
 Rumica's MVP architecture is **Bitrix24-centric**: Bitrix24 hosts admin/back-office functions, the product/catalog data, CRM (orders/deals), and payment processing, so that this functionality does not need to be custom-built. A thin custom bridging/adapter layer sits between the React/Three.js front end and Bitrix24, comprising an API Gateway/BFF and a small set of services — an Auth Bridge (Bitrix24 OAuth), a Commerce Bridge (cart/checkout/orders into Bitrix24 CRM and payments), a Catalog Proxy/synchronizer (reading Bitrix24 catalog data for the front end), a Projects Service (planner save/load state, stored in an application database and object storage, since projects are not native Bitrix24 data), and a CubiCasa Adapter (or equivalent, pending vendor validation) for floor-plan recognition calls. The earlier, more granular estimate sheet's custom Java/Spring Boot + PostgreSQL microservices narrative is treated as a superseded early technical exploration and is **not** the current direction; where that sheet's granularity is still useful (e.g., specific field-level behavior), it is read as detail on top of the Bitrix24-centric direction, not as a competing architecture. Full component/data-flow/deployment design is the system architect's next deliverable — this section exists only to bound scope and cost assumptions for this Vision & Scope.
 
 ## Required Integrations
-- **Bitrix24** — OAuth/identity for admin and (per the proposal's architecture) bridged end-user auth; CRM for orders/deals (backing checkout and "My Orders"); product/catalog data; payment processing via Bitrix24 payment apps. Central to nearly all MVP commerce and admin functionality.
+- **Bitrix24** — OAuth/identity for admin and (per the proposal's architecture) bridged end-user auth; CRM for orders/deals (backing checkout and "My Orders"); product/catalog data; payment processing via **Bitrix24 Payment APIs called directly (server-to-server) from the Commerce Bridge** — checkout itself is a custom Rumica-built form that collects and tokenizes payment details client-side, not the Bitrix24-hosted payment widget/redirect. Central to nearly all MVP commerce and admin functionality.
 - **Floor-plan recognition service (working assumption: CubiCasa)** — receives uploaded floor-plan images/PDFs and returns detected walls/doors/windows for the planner. **Not yet finalized** — a vendor evaluation/PoC is required before commitment (per Q&A decision #7); architecture and integration code should be built behind an adapter to allow vendor substitution if the PoC fails.
 - **Google OAuth** — social login option alongside email+password, per Q&A decision #4.
 - **External analytics (Google Analytics and/or Mixpanel)** — receives usage events (project creation, item usage, planner engagement) for product analytics.
