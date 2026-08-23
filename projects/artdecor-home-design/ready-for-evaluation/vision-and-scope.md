@@ -214,12 +214,12 @@ No project-specific compliance, data-residency, or scale targets were provided b
 **Pre-conditions:** User is logged in on the Free tier.
 **Main scenario:**
 1. User navigates to subscription/upgrade options and selects the Paid tier.
-2. User completes payment via the Bitrix24 payment module.
+2. User completes payment via Bitrix24's own hosted payment flow.
 3. On successful payment, system updates the user's tier to Paid and lifts Free-tier limits.
 **Alternative scenario:**
 1. Payment fails; user remains on the Free tier and is shown an error with a retry option.
 **Post-conditions:** User's subscription tier reflects Paid status; tier-based limits (FR-5) are updated accordingly.
-**Assumptions:** Only two tiers (Free/Paid) exist in MVP; no B2B/professional tier is in MVP scope.
+**Assumptions:** Only two tiers (Free/Paid) exist in MVP; no B2B/professional tier is in MVP scope. Subscription payment intentionally uses Bitrix24's own hosted payment flow — a genuinely separate payment path from the custom Rumica-built checkout form used for cart/product purchases in UC-6/FR-20; the two are not the same mechanism and this difference in wording is deliberate, not inconsistent.
 
 ### UC-9: Manage catalog and users (Admin)
 **Description:** As an Admin (Catalog Manager, User Manager, System Admin, or Super Admin), when I need to maintain the platform's content or user base, then I can perform CRUD and moderation actions through the admin panel, so that the catalog and community content stay accurate and appropriate.
@@ -242,7 +242,7 @@ No project-specific compliance, data-residency, or scale targets were provided b
 **Main scenario:**
 1. User bookmarks an item from the catalog listing or the product detail page.
 2. User navigates to the Favorites page to view their bookmarked items.
-3. For each item, the system derives and displays a status: "used-in-project" if the item has been placed into one of the user's active projects, "ordered" if the item appears in a completed Bitrix24 order for that user, or "pending" if neither applies.
+3. For each item, the system derives and displays a status by checking, in order: "ordered" if the item appears in a completed Bitrix24 order for that user; otherwise "used-in-project" if the item has been placed into one of the user's active projects; otherwise "pending."
 4. User selects "See in catalog" or "Details" on a favorited item to navigate back to the catalog listing or product detail page.
 **Alternative scenario:**
 1. User unbookmarks an item from the catalog, product detail page, or the Favorites list itself; the item is removed from the Favorites list.
@@ -276,7 +276,7 @@ No project-specific compliance, data-residency, or scale targets were provided b
 ### Subscription upgrade (alternative flow)
 1. Free-tier user hits a tier limit (e.g., attempts to duplicate a public design or save a 3rd project).
 2. System shows an upgrade prompt.
-3. User proceeds to the subscription page, selects Paid tier, and pays via Bitrix24.
+3. User proceeds to the subscription page, selects Paid tier, and pays via Bitrix24's own hosted payment flow (a separate payment path from the custom checkout form used for cart/product purchases).
 4. System updates the user's tier; the previously blocked action becomes available.
 
 ### Community publish-and-discover (alternative flow)
