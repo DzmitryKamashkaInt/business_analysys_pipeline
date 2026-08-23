@@ -26,3 +26,23 @@ This is a **retrofit / reverse-engineering case** for the business-analysis-pipe
 
 ## Q&A Transcript
 (To be appended by the orchestrating agent as the business-analyst's clarifying questions are answered.)
+
+**Q:** Is "Rumica" the rebranded continuation of the same "ArtDecor Home Design" project from the Aug 2025 proposal, or a separate venture? → **A:** Same project, rebranded — use "Rumica" as the product name; treat the Oct 2025 deck as an evolution of the same MVP scope.
+
+**Q:** Which payment backend should the Vision & Scope treat as authoritative for MVP checkout/subscriptions? → **A:** Bitrix24 for MVP, Shopify added for a later US-market expansion.
+
+**Q:** Which backend/architecture direction should the Vision & Scope and System Architecture Specification assume? → **A:** Bitrix24-centric — admin, catalog, CRM, and payments live inside Bitrix24; custom code is a thin bridging/adapter layer (Auth Bridge, Commerce Bridge, Catalog Proxy, Projects Service, CubiCasa Adapter).
+
+**Q:** Which social login providers are in MVP scope alongside email+password? → **A:** Google only.
+
+**Q:** Should any AI capability (natural-language design assistant or recommendations) be in MVP scope? → **A:** Strictly Post-MVP — no AI assistant or recommendation engine in MVP; the Rumica deck's mockup is aspirational only.
+
+**Q:** Is the "Seller" role (external parties managing their own catalog items) part of MVP scope? → **A:** No, Post-MVP — MVP keeps catalog management centralized to internal Admin roles only.
+
+**Q:** Is CubiCasa the final, confirmed vendor for floor-plan recognition, or still a placeholder pending evaluation? → **A:** Still to validate — CubiCasa is a working assumption for estimation, but a vendor evaluation/PoC is needed before final commitment.
+
+**Q:** Should the Rumica deck's market analysis, competitive landscape, monetization model, and financial projections be treated as authoritative business context for the Vision & Scope? → **A:** Include as business context — summarize market opportunity and monetization model in the Purpose section, without turning financial projections into functional requirements.
+
+**Q:** Should a customer-facing order history feature be added to MVP scope? → **A:** Yes — add a basic "My Orders" page (order list, status, receipt/invoice access) backed by Bitrix24 CRM order/deal data.
+
+**Q:** Should the Vision & Scope include specific NFRs (performance, uptime, data residency)? → **A:** Standard NFRs only — assume no special compliance constraints; use general best-practice placeholders (standard uptime, reasonable page-load times), to be refined during architecture.
