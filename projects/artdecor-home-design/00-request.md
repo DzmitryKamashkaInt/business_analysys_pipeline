@@ -46,3 +46,7 @@ This is a **retrofit / reverse-engineering case** for the business-analysis-pipe
 **Q:** Should a customer-facing order history feature be added to MVP scope? → **A:** Yes — add a basic "My Orders" page (order list, status, receipt/invoice access) backed by Bitrix24 CRM order/deal data.
 
 **Q:** Should the Vision & Scope include specific NFRs (performance, uptime, data residency)? → **A:** Standard NFRs only — assume no special compliance constraints; use general best-practice placeholders (standard uptime, reasonable page-load times), to be refined during architecture.
+
+**Q:** [Architecture round] Which Bitrix24 edition/plan will Rumica run against? → **A:** Cloud, standard commercial plan — moderate REST API limits; the current sync-cache design as specified is sufficient.
+
+**Q:** [Architecture round] Should checkout use Bitrix24's hosted payment page/widget, or a custom Rumica-built checkout form calling Bitrix24 payment APIs directly? → **A:** Custom Rumica-built checkout form — full UX control and branding consistency; adds custom-code surface (form validation, PCI-adjacent handling) not currently costed in the original estimate.
