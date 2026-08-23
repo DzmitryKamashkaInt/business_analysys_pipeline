@@ -30,7 +30,7 @@ graph TD
 | Web Front End | React + Three.js SPA: planner canvas, catalog browsing, cart, custom checkout form, admin-adjacent user pages | React, Three.js | Three.js is the confirmed engine per the planner-engine comparison doc; React is the standard fit for an SPA of this shape |
 | API Gateway / BFF | Single entry point for the front end; routes to bridge services; session/token validation | Node.js (or same stack as bridge services) reverse-proxy/BFF layer | Avoids exposing multiple internal service endpoints directly to the browser; centralizes auth-token handling |
 | Auth Bridge | Bridges Rumica user identity to Bitrix24 OAuth; issues/validates Rumica session tokens; handles Google OAuth handoff | OAuth 2.0 against Bitrix24 + Google | Bitrix24-centric direction requires user identity to reconcile with Bitrix24 records for CRM/order linkage |
-| Commerce Bridge | Owns cart state; renders/serves the **custom Rumica-built checkout form**; on submit, calls Bitrix24 Payment APIs directly to charge and creates/updates the corresponding CRM deal; handles subscription tier payments (FR-20) | Custom service, Bitrix24 REST (CRM + Payment APIs) | **Final decision:** custom checkout form chosen over Bitrix24's hosted widget for full UX/branding control (client-confirmed) — see PCI/security note below and Cost & Complexity Notes for the resulting build-effort implication |
+| Commerce Bridge | Owns cart state; renders/serves the **custom Rumica-built checkout form** for cart/product purchases (UC-6/FR-20) — on submit, calls Bitrix24 Payment APIs directly to charge and creates/updates the corresponding CRM deal. Subscription payments (UC-8/FR-21) instead go through **Bitrix24's own hosted payment flow** — a genuinely separate path, not the custom checkout form — with Bitrix24 sending a webhook/callback to the Commerce Bridge on successful payment, which the Commerce Bridge relays to the Auth Bridge to update the user's tier. These are two distinct payment paths, not one shared checkout mechanism | Custom service, Bitrix24 REST (CRM + Payment APIs), Bitrix24 payment webhook receiver | **Final decision:** custom checkout form for cart/product checkout, chosen over Bitrix24's hosted widget for full UX/branding control (client-confirmed) — see PCI/security note below and Cost & Complexity Notes for the resulting build-effort implication. Subscription payments deliberately use Bitrix24's hosted flow instead, per client confirmation that the two payment paths are distinct |
 | Catalog Sync/Proxy | Reads Bitrix24 catalog (products, packs, pricing) and serves it to the front end from a local read cache; kept fresh via Bitrix24 webhooks (create/update/delete) plus a periodic reconciliation poll | Custom service + cache store (e.g., Redis or a cached table) | **Final decision:** webhook-driven + periodic reconciliation (not live-proxying every request) is confirmed sufficient against Bitrix24 Cloud's standard-plan REST API rate limits |
 | Projects Service | CRUD for planner projects (layout state, item placement, dimensions, public/private flag), since projects are not native Bitrix24 data | Custom service + Application DB + Object Storage | Bitrix24 has no concept of a 2D planner project; this data must live in Rumica's own store |
 | Plan Recognition Adapter | Sends uploaded floor plans (JPG/PNG/PDF) to the recognition vendor and returns detected walls/doors/windows | Custom adapter, vendor-agnostic interface (CubiCasa as working assumption pending PoC per V&S) | Adapter boundary allows vendor substitution without touching the rest of the system, per the still-open vendor validation noted in the Vision & Scope |
@@ -81,7 +81,7 @@ graph TD
 ```
 
 ## Data Flow
-For the primary loop (design-to-purchase), the front end loads catalog data from the Catalog Sync/Proxy's local cache (kept current via Bitrix24 webhooks + periodic reconciliation, not per-request Bitrix24 calls). Users place items into a project managed by the Projects Service, persisted to the Application DB/Object Storage. At checkout, the front end renders Commerce Bridge's custom checkout form; on submission, tokenized payment details (never raw card data — see security note below) are sent to the Commerce Bridge, which calls Bitrix24 Payment APIs directly and creates/updates the corresponding CRM deal. Order status and history are read live from Bitrix24 CRM via the Commerce Bridge for the "My Orders" page — no separate order database is maintained. A favorited item's displayed status (pending / used-in-project / ordered) is derived at read time by cross-referencing the favorites record in the Application DB against Projects Service data (to detect "used-in-project") and Bitrix24 CRM order data via the Commerce Bridge (to detect "ordered") — if neither match is found, the item is shown as "pending."
+For the primary loop (design-to-purchase), the front end loads catalog data from the Catalog Sync/Proxy's local cache (kept current via Bitrix24 webhooks + periodic reconciliation, not per-request Bitrix24 calls). Users place items into a project managed by the Projects Service, persisted to the Application DB/Object Storage. At checkout, the front end renders Commerce Bridge's custom checkout form; on submission, tokenized payment details (never raw card data — see security note below) are sent to the Commerce Bridge, which calls Bitrix24 Payment APIs directly and creates/updates the corresponding CRM deal. Order status and history are read live from Bitrix24 CRM via the Commerce Bridge for the "My Orders" page — no separate order database is maintained. A favorited item's displayed status (pending / used-in-project / ordered) is derived at read time by cross-referencing the favorites record in the Application DB against Bitrix24 CRM order data via the Commerce Bridge (to detect "ordered") and Projects Service data (to detect "used-in-project"). The check order is explicit and takes strict priority: **ordered → used-in-project → pending** — the system checks "ordered" first, falls back to "used-in-project" only if not ordered, and defaults to "pending" if neither match is found.
 
 ## Key Flow Sequence Diagrams
 
@@ -232,21 +232,26 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant FE as Front End (custom checkout form)
+    participant FE as Front End
     participant GW as API Gateway
+    participant B24 as Bitrix24 Hosted Payment Page
     participant Commerce as Commerce Bridge
     participant Auth as Auth Bridge
-    participant B24 as Bitrix24
 
-    U->>FE: Select Paid tier, submit payment
-    FE->>GW: Submit tokenized payment
-    GW->>Commerce: Process subscription payment
-    Commerce->>B24: Charge via Payment API
-    B24-->>Commerce: Payment success
+    U->>FE: Select Paid tier, choose "Upgrade"
+    FE->>GW: Request subscription checkout
+    GW->>B24: Initiate Bitrix24-hosted payment session
+    B24-->>FE: Redirect user to Bitrix24-hosted payment page
+    U->>B24: Enter payment details, submit (on Bitrix24's own page)
+    B24-->>U: Payment result, redirect back to Rumica
+    B24->>Commerce: Webhook/callback - payment success
     Commerce->>Auth: Notify tier upgrade
     Auth->>B24: Update linked identity tier
     Auth-->>FE: Tier = Paid
+    FE-->>U: Show Paid tier confirmation
 ```
+
+> **Note on this flow:** unlike UC-6 (client-side tokenization + direct Commerce Bridge → Bitrix24 Payment API call), subscription payment is a genuinely separate path — the user is handed off to Bitrix24's own hosted payment page, and Bitrix24 calls back to the Commerce Bridge via webhook once payment succeeds. Rumica's front end and Commerce Bridge never handle raw or tokenized card data for this flow at all, since Bitrix24 owns the entire payment page.
 
 ### UC-9: Manage catalog and users (Admin)
 ```mermaid
@@ -266,7 +271,7 @@ sequenceDiagram
 | System | Protocol/Method | Data Exchanged | Notes |
 |---|---|---|---|
 | Bitrix24 Cloud (Standard Plan) | REST API + Webhooks, OAuth 2.0 | Identity, catalog, CRM deals/orders, payments | **Final:** Cloud, standard commercial plan. Moderate REST API rate limits — satisfied by webhook-driven catalog sync + periodic reconciliation, not live-proxying. No on-premise deployment is assumed anywhere in this architecture. |
-| Bitrix24 Payment APIs | REST, direct server-to-server call from Commerce Bridge | Payment authorization/capture requests, tokenized payment method | **Final:** Rumica calls Bitrix24 Payment APIs directly from its own custom checkout form; the Bitrix24-hosted payment widget/page is NOT used. |
+| Bitrix24 Payment APIs / Hosted Payment Page | REST, direct server-to-server call from Commerce Bridge (cart/product checkout); Bitrix24-hosted payment page + webhook/callback (subscriptions) | Payment authorization/capture requests, tokenized payment method (cart); hosted-page redirect + payment-success webhook (subscriptions) | **Final:** two genuinely distinct payment paths. Cart/product checkout (UC-6/FR-20) calls Bitrix24 Payment APIs directly from Rumica's own custom checkout form; the Bitrix24-hosted widget is NOT used for this path. Subscription payment (UC-8/FR-21) instead uses Bitrix24's own hosted payment page, with Bitrix24 calling back via webhook to the Commerce Bridge for tier update. |
 | Floor-plan recognition vendor (working assumption: CubiCasa) | REST API | Uploaded plan file → detected walls/doors/windows | Adapter-isolated pending vendor PoC per Vision & Scope |
 | Google OAuth | OAuth 2.0 | Identity token | Sole social login provider in MVP |
 | Google Analytics / Mixpanel | Client-side SDK and/or server-side event API | Usage events (project creation, item usage, planner engagement) | No PII beyond what these vendors' standard SDKs already collect |
@@ -323,7 +328,7 @@ Bitrix24 is consumed exclusively as a Cloud SaaS service (standard commercial pl
 ## Key Architectural Decisions & Tradeoffs
 - **Bitrix24-centric backend:** Admin, catalog, CRM, and payments live in Bitrix24 rather than being custom-built — gives up some flexibility/customization depth in exchange for materially lower build and maintenance cost (BR-4). The earlier Java/Spring Boot microservices exploration is confirmed superseded, not a parallel track.
 - **Webhook + periodic reconciliation catalog sync (not live-proxying):** Chosen over calling Bitrix24 on every catalog read — trades near-real-time freshness (catalog updates land within the reconciliation window, not instantly) for materially lower Bitrix24 API load, which matters directly given the confirmed standard-plan API limits.
-- **Custom Rumica-built checkout form (final, client-confirmed):** Chosen over the Bitrix24-hosted payment widget to give full UX/branding control end to end — trades a simpler, vendor-hosted redirect flow for additional custom-code surface (form validation, client-side tokenization, more careful security review) that the team must budget for explicitly.
+- **Custom Rumica-built checkout form (final, client-confirmed) — cart/product purchases only (UC-6/FR-20):** Chosen over the Bitrix24-hosted payment widget for cart/product checkout, to give full UX/branding control end to end — trades a simpler, vendor-hosted redirect flow for additional custom-code surface (form validation, client-side tokenization, more careful security review) that the team must budget for explicitly. Subscription payment (UC-8/FR-21) intentionally does NOT use this mechanism: it is a genuinely separate path through Bitrix24's own hosted payment flow, with Bitrix24 calling back to the Commerce Bridge via webhook — the two checkout mechanisms are deliberately distinct, not a shared implementation.
 - **No separate order database:** "My Orders" and order state are read live from Bitrix24 CRM rather than mirrored into Rumica's own DB — avoids a dual-write consistency problem, at the cost of order-history read latency being bounded by Bitrix24 API responsiveness (acceptable given no stated latency NFR).
 - **Adapter boundary around floor-plan recognition:** Isolates the vendor choice (CubiCasa is a working assumption, not yet finalized per Vision & Scope) so a vendor swap after the PoC doesn't ripple into the rest of the system.
 - **Relational Application DB (not NoSQL):** Projects/user-mapping/webhook-receipt data is structured and relationally shaped; no requirement points toward a document store or need for schema flexibility at this stage.
