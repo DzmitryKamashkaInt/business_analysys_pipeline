@@ -50,3 +50,11 @@ This is a **retrofit / reverse-engineering case** for the business-analysis-pipe
 **Q:** [Architecture round] Which Bitrix24 edition/plan will Rumica run against? → **A:** Cloud, standard commercial plan — moderate REST API limits; the current sync-cache design as specified is sufficient.
 
 **Q:** [Architecture round] Should checkout use Bitrix24's hosted payment page/widget, or a custom Rumica-built checkout form calling Bitrix24 payment APIs directly? → **A:** Custom Rumica-built checkout form — full UX control and branding consistency; adds custom-code surface (form validation, PCI-adjacent handling) not currently costed in the original estimate.
+
+**Q:** [Evaluation round 1] The Vision & Scope still describes checkout generically as "via the Bitrix24 payment module," not reflecting the architecture round's final custom-checkout-form decision. How should this be resolved? → **A:** Update Vision & Scope to match — revise FR-19, UC-6, the "Browse-to-purchase" flow, and Required Integrations to explicitly state checkout uses a custom Rumica-built form calling Bitrix24 Payment APIs directly.
+
+**Q:** [Evaluation round 1] The "Favorites" feature (from the detailed estimate sheet) is absent from both documents with no exclusion decision on record. How should this be handled? → **A:** Add to MVP scope — add a Favorites use case/FR to the Vision & Scope (plus a minor architecture note).
+
+**Q:** [Evaluation round 1] Should self-service payment-method management (view/add/cancel/update payment method, from the detailed estimate sheet) be added to FR-4? → **A:** Defer to Post-MVP — add "self-service payment-method management" explicitly to Post-MVP scope; support-handled or re-subscribe-manually in MVP.
+
+**Q:** [Evaluation round 1] The original proposal's architecture diagram includes an "Observability: Logs, Metrics, Traces" layer, absent from the finalized Architecture Specification. Should it be added back? → **A:** Omit it — treat basic observability as an implicit, standard part of any cloud deployment not requiring explicit architectural documentation for MVP; leave the spec as-is.
