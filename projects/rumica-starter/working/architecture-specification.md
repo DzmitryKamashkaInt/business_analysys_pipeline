@@ -26,7 +26,7 @@ graph TD
 | Auth Bridge | Email/password + Google OAuth registration/login (FR-1, FR-2); session issuance (FR-3); simplified profile (FR-4) | Server-side module | Reuses parent's Auth Bridge pattern against Bitrix24 identity (contacts); Starter just omits tier fields. |
 | Catalog Sync/Proxy (parameterized) | Webhook-driven + periodic reconciliation sync between Bitrix24's two catalog entities (Furniture, Building Materials) and the Catalog Read Model; passthrough for manual CRUD (FR-9) | Server-side module, `catalog_id`-parameterized | One parameterized service instead of two parallel pipelines — see Key Decisions. |
 | CSV Import Worker | Async/batch processing of catalog-specific CSV templates (FR-10); per-row success/failure logging | Background job (DB-backed queue, in-process worker) | Satisfies NFR-1's "non-blocking" requirement without introducing a message broker the scale doesn't justify. |
-| Catalog Read Model | Denormalized, indexed projection of both catalogs (common fields for unified search + full attributes for catalog-specific detail/filter) | Table(s) in Application DB, full-text/indexed columns | The mechanism that makes FR-7 (unified search) possible when the two catalogs are separate Bitrix24 entities — see Key Decisions. |
+| Catalog Read Model | Denormalized, indexed projection of both catalogs (common fields for unified search + full attributes and image-gallery references for catalog-specific detail/filter and the item card, FR-14/UC-6) | Table(s) in Application DB, full-text/indexed columns | The mechanism that makes FR-7 (unified search) possible when the two catalogs are separate Bitrix24 entities — see Key Decisions. Also the direct source for the item card (FR-14/UC-6): images are synced as URL references to Bitrix24-hosted files, not re-stored, so no Object Storage is needed for this. |
 | Commerce Bridge | Single checkout flow (FR-12): mixed-cart-aware order submission → Bitrix24 Payment APIs; order/deal creation in Bitrix24 CRM | Server-side module | Starter has only one checkout path (unlike parent's two), so this is a simplified subset of the parent's Commerce Bridge. |
 | Application DB | User↔Bitrix24 identity mapping; Catalog Read Model; CSV import job/log status | Relational DB (e.g. PostgreSQL) | Same DB the parent already uses; Starter just needs a narrower slice of it (no favorites/projects data yet). |
 
@@ -118,8 +118,29 @@ sequenceDiagram
         RM-->>GW: paginated results (catalog-specific attributes)
     end
     GW-->>FE: results
-    FE-->>Browser: render list / product detail
+    FE-->>Browser: render list / item card
 ```
+
+### UC-6 View Item Card (Photos and Details)
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant FE as Web Front End
+    participant GW as API Gateway/BFF
+    participant RM as Catalog Read Model (App DB)
+
+    Browser->>FE: open item from search/browse results (UC-2)
+    FE->>GW: get item detail(catalog_id, item_id)
+    GW->>RM: fetch item projection (attributes + image URL references)
+    RM-->>GW: item detail (schema-specific attributes, image URLs)
+    GW-->>FE: item detail
+    alt Images present
+        FE-->>Browser: render photo/image gallery + attributes
+    else No images on file
+        FE-->>Browser: render placeholder graphic + available attributes
+    end
+```
+No new component is introduced for this flow: the item card is served entirely from the same Catalog Read Model that already backs UC-2, since images are stored as URL references synced from Bitrix24 rather than in a separate media store.
 
 ### UC-3 Purchase Individual Products (Mixed Cart)
 ```mermaid
