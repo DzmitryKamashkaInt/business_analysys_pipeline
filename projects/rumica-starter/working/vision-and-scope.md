@@ -75,6 +75,7 @@ This limitation is accepted and carried forward as known, not silently resolved:
 - **FR-11 (Starter)** — The system SHALL allow a single cart to contain items from both the Furniture and Building Materials catalogs simultaneously (mixed cart). *(corresponds to parent FR-20, extended per Discovery Q&A — mixed-cart decision)*
 - **FR-12 (Starter)** — The system SHALL provide a single checkout flow using a custom Rumica checkout form that submits the order — regardless of which catalog(s) its items came from — to Bitrix24 Payment APIs. *(corresponds to parent FR-20)*
 - **FR-13 (Starter)** — The system SHALL display a "My Orders" view to the logged-in user, sourced from Bitrix24 CRM order records. *(corresponds to parent FR-22)*
+- **FR-14 (Starter)** — The system SHALL provide a product/item detail page ("item card") for any catalog item, from either the Furniture or the Building Materials catalog, that displays: (a) a photo/image gallery for the item, and (b) the item's full attribute/detail set as defined by that item's catalog schema — Furniture attributes for Furniture items, Building Materials attributes for Building Materials items — consistent with the separate-schema decision in FR-6. *(new; sharpens the previously implicit "view product detail" mention in FR-5/FR-6 into an explicit requirement)*
 
 ### Traceability Mapping (Starter FR/UC → Parent FR/UC)
 
@@ -93,11 +94,13 @@ This limitation is accepted and carried forward as known, not silently resolved:
 | FR-11 | FR-20 | Mixed-cart behavior is new detail |
 | FR-12 | FR-20 | Unchanged |
 | FR-13 | FR-22 | Unchanged |
+| FR-14 | — | New; sharpens implicit "view product detail" mention in FR-5/FR-6 into an explicit item-card requirement |
 | UC-1 | UC-1 | Unchanged |
 | UC-2 | — | New; browse/search across both catalogs |
 | UC-3 | UC-6-starter | Individual products only, either catalog |
 | UC-4 | UC-7 | Unchanged |
 | UC-5 | UC-9-starter | Catalog CRUD/CSV only, no user mgmt/moderation/reports |
+| UC-6 | none | New; sharpens what was previously an implicit detail of parent FR-13-starter/FR-14 into an explicit use case. View-only — parent FR-14 "Place in Interior" is explicitly NOT part of this use case (out of scope for Starter). |
 
 ## Non-Functional Requirements
 
@@ -108,8 +111,8 @@ This limitation is accepted and carried forward as known, not silently resolved:
 
 - **Auth Module:** Email/password and Google OAuth registration/login, session management.
 - **Profile Module:** Simplified user profile view/edit (no tier display).
-- **Furniture Catalog Module:** Browse/search/filter/detail for the Furniture catalog and its attribute schema.
-- **Building Materials Catalog Module:** Browse/search/filter/detail for the Building Materials catalog and its distinct attribute schema.
+- **Furniture Catalog Module:** Browse/search/filter/detail for the Furniture catalog and its attribute schema, including the item card — photo/image gallery plus full attribute details (FR-14, UC-6).
+- **Building Materials Catalog Module:** Browse/search/filter/detail for the Building Materials catalog and its distinct attribute schema, including the item card — photo/image gallery plus full attribute details (FR-14, UC-6).
 - **Unified Search Module:** Cross-catalog search bar returning results from both catalogs.
 - **Catalog Admin Module:** Unified Catalog Management screen (Furniture/Building Materials toggle), manual CRUD, and two-template CSV import with async processing.
 - **Cart & Checkout Module:** Mixed-catalog cart, custom Rumica checkout form, Bitrix24 Payment API submission.
@@ -138,7 +141,7 @@ This limitation is accepted and carried forward as known, not silently resolved:
 **Main scenario:**
 1. User enters a search term in the unified search bar.
 2. System returns matching results drawn from both the Furniture and Building Materials catalogs together, indicating which catalog each result belongs to.
-3. User opens a product detail page from the results.
+3. User opens a product's item card from the results (→ see UC-6).
 **Alternative scenario:**
 1. User instead navigates directly into the Furniture (or Building Materials) section and applies category filters specific to that catalog's schema.
 2. System returns filtered results scoped only to that one catalog.
@@ -183,6 +186,21 @@ This limitation is accepted and carried forward as known, not silently resolved:
 2. System validates the file, processes it as an async batch job, and reports success/failure/row-level errors to the Admin once complete.
 **Post-conditions:** Catalog data is created/updated/removed accordingly; changes are reflected in both unified search and catalog-specific browse.
 **Assumptions:** CSV templates strictly correspond to each catalog's own attribute schema, per the confirmed two-template decision. No pricing/priority rule engine is included (deferred).
+
+### UC-6 (Starter): View Item Card (Photos and Details)
+**Description:** As a user browsing or searching either catalog, when I open an item from unified search results or catalog-specific browse, then the system displays that item's card showing its photo/image gallery and its full attribute/detail set per its own catalog schema, so that I can evaluate the item before adding it to my cart.
+**Roles:** Anonymous visitor, Registered user.
+**Pre-conditions:** The item exists in either the Furniture or the Building Materials catalog and has been reached via search (UC-2) or catalog-specific browse (UC-2, alternative scenario).
+**Main scenario:**
+1. User selects an item from unified search results or from catalog-specific browse (see UC-2).
+2. System opens the item card and displays the item's photo/image gallery.
+3. System displays the item's full attribute/detail set, drawn from the attribute schema of whichever catalog — Furniture or Building Materials — the item belongs to (per FR-6, FR-14).
+4. User reviews the photos and details and may proceed to add the item to cart (UC-3).
+**Alternative scenario:**
+1. The item has no images on file; system displays a placeholder/fallback graphic in the gallery area instead of an empty gallery.
+2. The item's attribute data is incomplete; system displays whichever attributes are available and omits blank/broken fields rather than rendering them.
+**Post-conditions:** The user has viewed the item's images and details; viewing alone causes no change to catalog data or cart contents.
+**Assumptions:** This use case covers viewing only. Placing an item into an interior/room (parent FR-14, "Place in Interior") is explicitly not part of Starter and not part of this use case — it depends on the deferred 2D Room Planner.
 
 ## User Flows
 
