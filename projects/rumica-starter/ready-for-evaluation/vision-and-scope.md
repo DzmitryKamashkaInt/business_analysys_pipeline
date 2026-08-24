@@ -32,7 +32,7 @@ This limitation is accepted and carried forward as known, not silently resolved:
 
 ### Out of Scope
 
-**(a) Deferred to a later phase of Rumica** (remain fully in-scope for the product; simply not built in Starter, and Starter is designed not to require rework when they are added):
+**Deferred to a later phase of Rumica** (remain fully in-scope for the product; simply not built in Starter, and Starter is designed not to require rework when they are added):
 - 2D Room Planner (Three.js-based room/interior design tool).
 - Floor-plan upload, recognition, and dimension confirmation.
 - Flat Plans gallery.
