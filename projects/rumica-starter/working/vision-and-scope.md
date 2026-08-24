@@ -45,13 +45,6 @@ This limitation is accepted and carried forward as known, not silently resolved:
 - Analytics integration (internal + GA/Mixpanel).
 - Curated design packs (tied to the planner; deferred alongside it — checkout in Starter covers individual products only).
 
-**(b) Post-MVP for the whole Rumica product** (per the parent project's finalized scope; these are not "later phase of Starter" items — they sit beyond the entire MVP roadmap, Starter included):
-- AI-assisted design/recommendation features.
-- Seller role / marketplace-style multi-seller support.
-- Shopify (or other third-party commerce platform) integration.
-- Multi-currency support.
-- Any other item the parent project's Vision & Scope classifies as Post-MVP.
-
 ## Business Requirements
 
 - **BR-1** (partially satisfied by Starter): Enable non-specialist users to furnish with real, purchasable products. Starter satisfies the "furnish with real products" half; the "plan" half is out of scope here.

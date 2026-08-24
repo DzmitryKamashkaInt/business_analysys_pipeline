@@ -1,7 +1,7 @@
 # System Architecture Specification — Rumica Starter (Phase 1 of Rumica)
 
 ## Overview
-Rumica Starter is delivered as a **Bitrix24-centric modular monolith**, directly continuing the thin-bridge shape already finalized for the parent `artdecor-home-design` architecture — no new backend paradigm, no microservices split. The system is a single deployable application (Web/Admin Front End + API Gateway/BFF + Auth/Catalog/Commerce bridges + a lightweight async job worker) sitting in front of Bitrix24 Cloud Standard Plan, which remains the system of record for identity, catalog, and orders/payment (BR-4). The only structural addition Starter needs beyond the parent's shape is a small **Catalog Read Model** inside the existing Application DB, required specifically to satisfy unified search (FR-7) across two schema-independent Bitrix24 catalog entities without hitting Bitrix24 Standard Plan API rate limits on every browse/search request.
+Rumica Starter is delivered as a **Bitrix24-centric modular monolith**, directly continuing the thin-bridge shape already finalized for the parent `artdecor-home-design` architecture — no new backend paradigm, no microservices split. The system is a single deployable application (Web/Admin Front End + API Gateway/BFF + Auth/Catalog/Commerce bridges + a lightweight async job worker) sitting in front of Bitrix24 Cloud, which remains the system of record for identity, catalog, and orders/payment (BR-4). The only structural addition Starter needs beyond the parent's shape is a small **Catalog Read Model** inside the existing Application DB, required specifically to satisfy unified search (FR-7) across two schema-independent Bitrix24 catalog entities without hitting Bitrix24 API rate limits on every browse/search request.
 
 ## Context Diagram
 ```mermaid
@@ -61,7 +61,7 @@ graph TD
 ```
 
 ## Data Flow
-Bitrix24 remains the source of truth for catalog data, identity, and orders. The Catalog Sync/Proxy keeps the Catalog Read Model in the Application DB in near-real-time sync via Bitrix24 webhooks, backed by periodic reconciliation (the parent's established mitigation for Bitrix24 Standard Plan API rate limits). All customer-facing reads (unified search, catalog-specific browse/filter, product detail) are served from this read model rather than hitting Bitrix24 live on every request. Writes (admin CRUD, CSV import rows) go to Bitrix24 first, then the read model is updated by the same sync mechanism. Checkout and "My Orders" are the two flows that intentionally bypass the read model and talk to Bitrix24 CRM/Payment APIs live, since orders/payment must reflect Bitrix24's authoritative state.
+Bitrix24 remains the source of truth for catalog data, identity, and orders. The Catalog Sync/Proxy keeps the Catalog Read Model in the Application DB in near-real-time sync via Bitrix24 webhooks, backed by periodic reconciliation (the parent's established mitigation for Bitrix24 API rate limits). All customer-facing reads (unified search, catalog-specific browse/filter, product detail) are served from this read model rather than hitting Bitrix24 live on every request. Writes (admin CRUD, CSV import rows) go to Bitrix24 first, then the read model is updated by the same sync mechanism. Checkout and "My Orders" are the two flows that intentionally bypass the read model and talk to Bitrix24 CRM/Payment APIs live, since orders/payment must reflect Bitrix24's authoritative state.
 
 ## Key Flow Sequence Diagrams
 
@@ -221,7 +221,7 @@ sequenceDiagram
 ## Integrations
 | System | Protocol/Method | Data Exchanged | Notes |
 |---|---|---|---|
-| Bitrix24 CRM/Catalog | REST API (webhooks + polling reconciliation) | Product data for both catalogs, orders/deals, contacts | Two catalog entities (Furniture, Building Materials); Standard Plan rate limits mean webhook-first, reconciliation as backstop (per parent finding). |
+| Bitrix24 CRM/Catalog | REST API (webhooks + polling reconciliation) | Product data for both catalogs, orders/deals, contacts | Two catalog entities (Furniture, Building Materials); Bitrix24 API rate limits mean webhook-first, reconciliation as backstop (per parent finding). |
 | Bitrix24 Payment APIs | REST API | Checkout/payment creation, payment status | Single checkout path only (Starter has no subscription/dual-path). |
 | Google OAuth | OAuth 2.0 | Identity token, email, profile | Login only; no other Google services used. |
 
@@ -249,7 +249,7 @@ graph TD
         DB[(Application DB)]
     end
     subgraph External SaaS
-        BX[Bitrix24 Cloud Standard Plan]
+        BX[Bitrix24 Cloud]
         GOOG[Google OAuth]
     end
 
