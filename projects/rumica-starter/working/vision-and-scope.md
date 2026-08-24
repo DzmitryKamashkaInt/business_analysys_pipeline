@@ -218,7 +218,7 @@ This limitation is accepted and carried forward as known, not silently resolved:
 ### Catalog Discovery (main flow)
 1. User enters a term in the unified search bar.
 2. System returns combined results from both catalogs, labeled by catalog.
-3. User selects a result and views product detail.
+3. User selects a result and views the item's card — photos and details (UC-6).
 4. User adds the product to the cart.
 
 ### Catalog Discovery (alternative flow — catalog-specific browse)
