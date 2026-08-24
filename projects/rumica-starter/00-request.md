@@ -51,3 +51,32 @@ Parent architecture direction: Bitrix24-centric — Bitrix24 hosts admin/catalog
 **Q:** [Evaluation round 2] Round-1's Bitrix24 plan-tier softening was explicitly confirmed only for the Architecture Specification; it was also proactively applied to the Vision & Scope's "Presumed Architecture Direction" section (same underlying phrase) without a separate confirmed answer. Keep, revert, or log a confirming decision? → **A:** Keep as-is — accepted as a natural extension of the round-1 decision; no document change, this entry closes the traceability gap.
 
 **Q:** [Evaluation round 2] After removing Out-of-Scope subsection (b) in round 1, only "(a) Deferred to a later phase of Rumica" remains, with no paired (b). Keep the "(a)" label, drop it, or replace with a plain heading? → **A:** Replace with a plain heading — "Deferred to a later phase of Rumica" without the "(a)" prefix. Applied.
+
+## Major Rework — Custom Stack + Multi-Country Payments (2026-08-24)
+
+Following two ad hoc notes (`notes_20260824_151012.md` — Bitrix24-vs-custom architecture conflict found when cross-checking an external development estimate; `notes_20260824_152118.md` — BR/FR/UC coverage of that estimate under a "switch to custom backend" hypothesis), the user has decided to actually adopt the custom-backend direction and, on top of that, introduce a materially new multi-country payment requirement. This section documents that decision and the full set of clarifying answers resolving it. **This supersedes the project's prior Bitrix24-centric direction — both `ready_for_dev_docs/` documents are to be reworked in place, not forked into a new project**, since this is still the same Starter phase, just with a changed implementation direction and an expanded payment requirement.
+
+### Resolved decisions
+
+1. **Backend architecture — full switch away from Bitrix24.** Catalog, authentication/identity, and CRM/orders all become custom-built (in the shape the external estimate assumed: a Java/Spring-Boot-style service with its own relational schema), replacing every Bitrix24-hosted responsibility from the prior architecture. Bitrix24 is dropped entirely — not partially retained for any function.
+2. **Payment countries — all 6 confirmed in scope:** Kazakhstan, Uzbekistan, Armenia, Georgia, Belarus, Russia.
+3. **Payment architecture — orchestration layer, not a single gateway.** A payment orchestration layer inside the custom backend exposes one internal interface (createPayment, getStatus, refund, webhook) behind which multiple country-specific provider adapters plug in. Per-country primary local providers, confirmed as **working assumptions pending vendor PoC/validation** (not final vendor commitments — same posture as CubiCasa in the parent project):
+   - Kazakhstan → Kaspi Pay + fallback bank card acquiring.
+   - Uzbekistan → Payme + Click, both offered in parallel.
+   - Armenia → Ameriabank vPOS or VPOS.am (multi-bank aggregator).
+   - Georgia → TBC E-Commerce API or Bank of Georgia (Visa/Mastercard acquiring).
+   - Belarus → bePaid (ЕРИП + cards).
+   - Russia → ЮKassa/CloudPayments (contingent on continued legal presence).
+   Routing is by the cart's country/currency context (not a single global checkout), and the adapter boundary must allow swapping any single country's provider within weeks, not a checkout rewrite — per the regulatory/compliance instability named for the region.
+4. **Currency model — true multi-currency.** Catalog, cart, and checkout display and store prices in each country's own local currency; no single reference currency with provider-side conversion.
+5. **Language/UI — stays single-language (Russian)** for all 6 countries. Multi-language localization is explicitly NOT part of this rework; only currency/payment-routing varies by country.
+6. **Previously identified estimate-coverage gaps are to be closed properly in the reworked documents** (these are gaps in a THIRD-PARTY ESTIMATE against already-confirmed requirements, not new scope decisions — restate them correctly, don't reopen them): Google OAuth (FR-2) must be explicit; the two catalogs (Furniture, Building Materials) must keep their own independent attribute schemas end-to-end (including two separate CSV import templates, FR-10) rather than collapsing into one undifferentiated schema; the item card (FR-14/UC-6) must render per-catalog-schema attribute sets, not one generic shape; UC-5's per-row CSV import success/failure reporting and UC-6's alternative scenarios (image placeholder when none on file; omit blank/broken attributes rather than rendering them) must be explicit requirements, not implied.
+7. **Previously identified scope-creep items — resolved individually:**
+   - Role hierarchy (Editor/Viewer beyond Admin): **rejected** — Starter keeps the single Admin role only, as before.
+   - Stock/inventory management (stock quantity, decrement on paid order, out-of-stock handling): **accepted into scope** — add as a new FR/NFR.
+   - Guest cart with merge-on-login: **accepted into scope** — add as an explicit extension of FR-11/UC-3 (anonymous users may build a cart pre-login; it merges into their account cart on login/registration).
+   - Nested category hierarchy + breadcrumb navigation: **accepted into scope** — add as an explicit extension of FR-8.
+8. **BR-4 requires rewording, not retirement-by-omission.** BR-4 was "centralize commerce/CRM/catalog in Bitrix24 — fully satisfied by Starter." With Bitrix24 dropped, this BR must be rewritten to reflect what actually replaces it as a rationale (e.g., owning the full stack to control cost/timeline and to support the country-specific payment-provider abstraction that a third-party platform couldn't accommodate) — this is the business-analyst's call on exact wording, but the BR must not simply vanish or be left describing Bitrix24.
+
+### Task for this rework cycle
+Rework `working/vision-and-scope.md` and `working/architecture-specification.md` in full to reflect all of the above, run them through evaluation, and finalize to `ready_for_dev_docs/`, replacing the Bitrix24-centric versions.
