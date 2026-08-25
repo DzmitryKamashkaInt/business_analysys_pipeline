@@ -80,3 +80,7 @@ Following two ad hoc notes (`notes_20260824_151012.md` — Bitrix24-vs-custom ar
 
 ### Task for this rework cycle
 Rework `working/vision-and-scope.md` and `working/architecture-specification.md` in full to reflect all of the above, run them through evaluation, and finalize to `ready_for_dev_docs/`, replacing the Bitrix24-centric versions.
+
+**Q:** [Rework — business-analyst clarifying] Are both catalogs sold identically in all six countries, or can availability differ by country? → **A:** Same catalog everywhere — every SKU purchasable in every country; only price/currency and payment routing vary by country.
+
+**Q:** [Rework — business-analyst clarifying] Is stock (FR-15) a single global pool per SKU, or per-country pools? → **A:** Single global pool per SKU, shared across all six countries.
