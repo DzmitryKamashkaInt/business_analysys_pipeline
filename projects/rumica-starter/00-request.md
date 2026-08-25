@@ -94,3 +94,9 @@ Rework `working/vision-and-scope.md` and `working/architecture-specification.md`
 ### Newly confirmed scope addition (this rework cycle)
 - **Out-of-stock prevention at add-to-cart, not at checkout.** Out-of-stock items cannot be added to the cart or purchased; the UI must reflect availability before the user attempts to add the item, not only reject it at checkout. UC-3's out-of-stock alternative scenario and its "per admin configuration" wording are to be corrected accordingly (no admin toggle — simple, universal prevention).
 - **"Notify me when available" (new feature, in scope for Starter):** On an out-of-stock item's card/listing, the user (guest or logged-in) may request a one-time notification when that SKU is restocked. Requires: (a) a new FR/UC for requesting and fulfilling this notification, (b) an email delivery integration (not previously part of Starter's confirmed Required Integrations — must be added), (c) a trigger tied to the Inventory Module's restock event (stock transitioning from 0 to available), (d) architecture support for storing pending notification requests and dispatching them on restock.
+
+## Evaluation Round 4 (restock notification rework) — Q&A
+
+**Q:** [Evaluation round 4] FR-15 still describes checkout-time out-of-stock prevention/flagging (the pre-round-3 framing), while UC-3/UC-6/FR-18 now correctly describe add-to-cart-time blocking as the primary mechanism. Reword FR-15? → **A:** Reword — FR-15 updated so add-to-cart-time prevention is the primary mechanism, with checkout-time verification as the race-condition fallback only. Applied.
+
+**Q:** [Evaluation round 4] The Architecture Specification introduced NFR-4 (restock notification at-most-once dispatch) with no corresponding entry in the Vision & Scope (which only had NFR-1..3), breaking the pairing convention. How to resolve? → **A:** Add NFR-4 to the Vision & Scope, matching the Architecture's NFR-4. Applied.
