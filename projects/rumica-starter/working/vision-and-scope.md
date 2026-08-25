@@ -23,7 +23,7 @@ This limitation is accepted and carried forward as known, not silently resolved:
 - Two independent product catalogs — **Furniture** and **Building Materials** — each with its **own attribute schema**, browsable, searchable, and filterable independently, end to end (catalog storage, browse/filter UI, CSV import, item card rendering — no collapsing into one undifferentiated schema at any layer). Catalog contents are **identical across all six supported countries** — every SKU is purchasable in every country; only price/currency and payment routing vary by country, not product availability.
 - A **unified search bar** that searches across both catalogs simultaneously.
 - **Catalog-specific category browsing and filtering**, now including **nested category hierarchy with breadcrumb navigation** per catalog — browse/filter UI remains separate per catalog (not unified), even though search is unified.
-- Product detail pages ("item card") for items in either catalog, rendering that item's photo gallery and its full attribute set per its own catalog's schema.
+- Product detail pages ("item card") for items in either catalog, rendering that item's photo gallery and its full attribute set per its own catalog's schema; for an out-of-stock item, the item card replaces the "Add to Cart" action with a "Notify me when available" affordance (see FR-18, UC-7).
 - **Admin Catalog Management**: a single unified admin screen with a toggle between Furniture and Building Materials, sharing one CRUD and CSV-import UI pattern, Admin role only (no Editor/Viewer role hierarchy).
 - **CSV import for catalog seeding**, available from day one, using **two separate CSV templates** — one matching the furniture attribute schema, one matching the building materials attribute schema. Import supports batch/async processing to handle medium-scale catalogs without blocking the admin UI, and reports **per-row success/failure** to the Admin on completion.
 - **Stock/inventory management**: stock quantity tracked per SKU in both catalogs, decremented on a successfully paid order, and out-of-stock items handled explicitly (blocked from checkout / flagged to the user).
@@ -74,6 +74,7 @@ This limitation is accepted and carried forward as known, not silently resolved:
 - **FR-15 (Starter)** — The system SHALL track a single global stock quantity per SKU (not per-country), shared across all six supported countries, SHALL decrement that stock on a successfully paid order regardless of which country the order came from, and SHALL prevent checkout of (or flag as unavailable) items that are out of stock. *(new — accepted scope-creep item: stock/inventory management; confirmed as a single global pool, not per-country pools)*
 - **FR-16 (Starter)** — The system SHALL store and display catalog prices, cart totals, and order totals in the local currency of the country associated with the shopping session/cart, independently per country, with no single reference currency and no automatic cross-currency conversion at checkout. *(new — true multi-currency model)*
 - **FR-17 (Starter)** — The system SHALL expose an internal payment orchestration interface (createPayment, getStatus, refund, webhook) behind which a separate provider adapter plugs in for each of the six supported countries (Kazakhstan, Uzbekistan, Armenia, Georgia, Belarus, Russia), and SHALL allow any single country's adapter to be replaced without requiring changes to checkout UI, order flow, or other countries' adapters. *(new — payment orchestration layer, direction only; detailed component design is the system-architect's to make)*
+- **FR-18 (Starter)** — The system SHALL let a user (guest or logged-in) request a one-time restock notification for an out-of-stock SKU from that item's card, capturing the user's email address (from their account if logged in, or entered manually if a guest); the system SHALL send exactly one notification email to that address when the SKU's stock quantity transitions from zero to an available (positive) quantity, and SHALL NOT send any further notification for that same request after it has fired once. *(new — accepted scope-creep item from this rework cycle: "Notify me when available" restock notification, part of the confirmed out-of-stock UX decision)*
 
 ### Traceability Mapping (Starter FR/UC → Parent FR/UC, and prior-version Starter FR/UC)
 
@@ -96,12 +97,14 @@ This limitation is accepted and carried forward as known, not silently resolved:
 | FR-15 | New | — | Stock/inventory management (accepted scope-creep item) |
 | FR-16 | New | — | Multi-currency pricing model |
 | FR-17 | New | — | Payment orchestration layer / six country adapters |
+| FR-18 | New — this rework cycle, out-of-stock UX decision | — | "Notify me when available" one-time restock notification |
 | UC-1 | Carried over, unchanged | Parent UC-1 | — |
 | UC-2 | Carried over, extended | — (new in prior Starter version) | Adds nested category hierarchy + breadcrumbs |
-| UC-3 | Changed / extended | Parent UC-6-starter (prior Starter: Bitrix24 checkout) | Bitrix24 dropped; adds guest cart merge, country/currency-aware checkout, out-of-stock handling |
+| UC-3 | Changed / extended | Parent UC-6-starter (prior Starter: Bitrix24 checkout) | Bitrix24 dropped; adds guest cart merge, country/currency-aware checkout; out-of-stock handling reframed this cycle as a rare race-condition case only (prevention now happens at add-to-cart time, see UC-6/UC-7), with a link to the new "Notify me when available" flow |
 | UC-4 | Changed | Parent UC-7 (prior Starter: Bitrix24 CRM) | Bitrix24 dropped; now sourced from custom Orders/CRM module |
 | UC-5 | Carried over, extended | Parent UC-9-starter | Adds explicit per-row CSV import success/failure reporting |
-| UC-6 | Carried over, unchanged | — (new in prior Starter version) | Alternative scenarios (image placeholder; omit blank/broken attributes) reaffirmed as explicit |
+| UC-6 | Carried over, extended | — (new in prior Starter version) | Alternative scenarios (image placeholder; omit blank/broken attributes) reaffirmed as explicit; this rework cycle adds the out-of-stock branch in the main scenario (Add to Cart unavailable → Notify me when available, UC-7) |
+| UC-7 | New — this rework cycle, out-of-stock UX decision | — | Request Restock Notification ("Notify me when available") |
 
 ## Non-Functional Requirements
 
@@ -114,8 +117,8 @@ This limitation is accepted and carried forward as known, not silently resolved:
 
 - **Auth Module:** Email/password and Google OAuth registration/login, session management — now backed by the custom identity store, not Bitrix24.
 - **Profile Module:** Simplified user profile view/edit (no tier display).
-- **Furniture Catalog Module:** Browse/search/filter/detail for the Furniture catalog and its attribute schema, including nested category hierarchy/breadcrumbs and the item card (FR-14, UC-6).
-- **Building Materials Catalog Module:** Browse/search/filter/detail for the Building Materials catalog and its distinct attribute schema, including nested category hierarchy/breadcrumbs and the item card (FR-14, UC-6).
+- **Furniture Catalog Module:** Browse/search/filter/detail for the Furniture catalog and its attribute schema, including nested category hierarchy/breadcrumbs and the item card (FR-14, UC-6); for out-of-stock items, the item card's "Add to Cart" action is replaced by "Notify me when available" (FR-18, UC-7).
+- **Building Materials Catalog Module:** Browse/search/filter/detail for the Building Materials catalog and its distinct attribute schema, including nested category hierarchy/breadcrumbs and the item card (FR-14, UC-6); for out-of-stock items, the item card's "Add to Cart" action is replaced by "Notify me when available" (FR-18, UC-7).
 - **Unified Search Module:** Cross-catalog search bar returning results from both catalogs.
 - **Catalog Admin Module:** Unified Catalog Management screen (Furniture/Building Materials toggle), manual CRUD, two-template CSV import with async processing and per-row success/failure reporting, Admin-only.
 - **Inventory/Stock Module:** Per-SKU stock quantity, decrement-on-paid-order, out-of-stock handling for both catalogs (FR-15).
@@ -165,9 +168,9 @@ This limitation is accepted and carried forward as known, not silently resolved:
 5. System decrements stock for each purchased SKU and creates the order record in the custom Orders/CRM module.
 **Alternative scenario:**
 1. Payment submission to the country-specific provider adapter fails or is declined; system informs the user and returns them to checkout to retry, cart intact.
-2. An item in the cart becomes out of stock before checkout completes; system blocks checkout of that item (or the whole order, per admin configuration) and prompts the user to adjust the cart.
+2. Rare race condition: an item was in stock at the moment it was added to the cart, but its stock is exhausted by a concurrent order (or drops to zero via an admin/CSV stock update) before this checkout completes. System detects this at checkout, removes/flags only that item from the order, informs the user it has just sold out, offers "Notify me when available" for that SKU (UC-7), and lets the user proceed to pay for the remaining in-stock items in the cart.
 **Post-conditions:** An order record exists in the custom Orders/CRM module, associated with the user, priced in the correct local currency; stock is decremented; cart is cleared on success.
-**Assumptions:** No curated design packs and no planner-originated items are part of this flow — items are standalone catalog products only. Vendor-specific behavior of each country's payment provider adapter is a working assumption pending PoC/validation (see Required Integrations).
+**Assumptions:** No curated design packs and no planner-originated items are part of this flow — items are standalone catalog products only. Vendor-specific behavior of each country's payment provider adapter is a working assumption pending PoC/validation (see Required Integrations). Out-of-stock items cannot be added to the cart in the first place — prevention happens at browse/item-card/add-to-cart time (see UC-6), where "Add to Cart" is simply unavailable for an out-of-stock item; this use case's alternative scenario above covers only the rare race-condition case where stock is exhausted after the item was already in the cart, not the primary out-of-stock handling point.
 
 ### UC-4 (Starter): View My Orders
 **Description:** As a logged-in user, when I open "My Orders," then the system displays my order history retrieved from the custom Orders/CRM module, so that I can track past purchases.
@@ -203,12 +206,29 @@ This limitation is accepted and carried forward as known, not silently resolved:
 1. User selects an item from unified search results or from catalog-specific browse (see UC-2).
 2. System opens the item card and displays the item's photo/image gallery.
 3. System displays the item's full attribute/detail set, drawn from the attribute schema of whichever catalog — Furniture or Building Materials — the item belongs to (per FR-6, FR-14).
-4. User reviews the photos and details and may proceed to add the item to cart (UC-3), if it is in stock.
+4. User reviews the photos and details; if the item is in stock, the user may proceed to add it to cart (UC-3); if the item is out of stock, "Add to Cart" is unavailable and the system instead offers "Notify me when available" for that SKU (UC-7).
 **Alternative scenario:**
 1. The item has no images on file; system displays a placeholder/fallback graphic in the gallery area instead of an empty gallery.
 2. The item's attribute data is incomplete; system displays whichever attributes are available and omits blank/broken fields rather than rendering them.
 **Post-conditions:** The user has viewed the item's images and details; viewing alone causes no change to catalog data or cart contents.
 **Assumptions:** This use case covers viewing only. Placing an item into an interior/room (parent FR-14, "Place in Interior") is explicitly not part of Starter and not part of this use case — it depends on the deferred 2D Room Planner.
+
+### UC-7 (Starter): Request Restock Notification ("Notify me when available")
+**Description:** As a user (anonymous or logged-in) viewing an out-of-stock item's card, when I select "Notify me when available" in place of "Add to Cart," then the system captures my email address and queues a one-time restock-notification request for that SKU, so that I am automatically emailed once the item becomes available again, without needing to keep checking back.
+**Roles:** Anonymous visitor, Registered user (the requester); Admin (triggers restock detection via a manual stock update, UC-5); System/CSV import process (triggers restock detection via a batch stock update, UC-5 alternative scenario).
+**Pre-conditions:** The item's stock quantity is zero at the time of the request; the item's card is displaying "Notify me when available" in place of "Add to Cart" (see UC-6).
+**Main scenario:**
+1. User opens the item card for an out-of-stock SKU (UC-6) and selects "Notify me when available" in place of "Add to Cart."
+2. If the user is logged in, the system captures their account email automatically; if the user is anonymous, the system prompts for and captures a manually entered email address.
+3. System records a one-time restock-notification request for that SKU and email address, and confirms to the user that the request was received.
+4. At a later point, an Admin manually updates the item's stock quantity from zero to a positive value (UC-5), or a CSV import updates the item's stock quantity from zero to a positive value (UC-5, alternative scenario).
+5. System detects the zero-to-available stock transition for that SKU and sends exactly one notification email to each email address with a pending request for that SKU, via the email delivery provider (see Required Integrations).
+6. System marks each fired request as complete and does not send any further notification for it.
+**Alternative scenario:**
+1. The same email address submits a second restock-notification request for a SKU it already has a pending request for; system recognizes the existing pending request and does not queue a duplicate — only one notification will ever be sent for that SKU/email pair.
+2. A user who requested notification for a SKU purchases the same or an equivalent item through another channel before the SKU is restocked; the pending request simply becomes moot — the system takes no special action, and the one-time email still fires normally (harmlessly) if/when the SKU is later restocked.
+**Post-conditions:** A pending restock-notification request exists for the SKU/email pair until it fires or is superseded by a duplicate check; once fired, the request is marked complete and no further emails are sent for it.
+**Assumptions:** The email delivery provider (see Required Integrations) is reliable enough for this purpose; the specific provider is an open implementation choice for the system-architect, not decided here. This use case does not reserve or hold stock for the requester — the notification is informational only, not a guarantee of availability at the moment the email is read.
 
 ## User Flows
 
@@ -227,13 +247,13 @@ This limitation is accepted and carried forward as known, not silently resolved:
 1. User enters a term in the unified search bar.
 2. System returns combined results from both catalogs, labeled by catalog.
 3. User selects a result and views the item's card — photos and details (UC-6).
-4. User adds the product to the cart, as either a guest or a logged-in user.
+4. If the item is in stock, user adds the product to the cart, as either a guest or a logged-in user; if the item is out of stock, "Add to Cart" is unavailable and the user may instead request "Notify me when available" (see Request Restock Notification flow).
 
 ### Catalog Discovery (alternative flow — catalog-specific browse)
 1. User selects the Furniture (or Building Materials) section directly.
 2. User navigates the catalog's nested category hierarchy via breadcrumbs and applies category filters specific to that catalog's schema.
 3. System returns filtered results within that one catalog only.
-4. User adds a product to the cart.
+4. If the item is in stock, user adds it to the cart; if the item is out of stock, "Add to Cart" is unavailable and the user may instead request "Notify me when available" (see Request Restock Notification flow).
 
 ### Guest Cart, Country-Aware Checkout, and Payment (main flow)
 1. Anonymous user browses both catalogs and adds items from either to a guest cart.
@@ -244,10 +264,17 @@ This limitation is accepted and carried forward as known, not silently resolved:
 6. Provider confirms payment; system decrements stock for purchased SKUs, creates the order in the custom Orders/CRM module, confirms success, and clears the cart.
 7. Order appears in "My Orders," sourced from the custom Orders/CRM module.
 
-### Country-Aware Checkout (alternative flow — payment failure or out-of-stock)
+### Country-Aware Checkout (alternative flow — payment failure or race-condition out-of-stock)
 1. User submits the checkout form.
-2. Either: the country-specific provider adapter returns a failure/decline, or an item in the cart is discovered to be out of stock.
-3. System displays the specific error, leaves the cart intact, and returns the user to checkout to retry or adjust the cart.
+2. Either: the country-specific provider adapter returns a failure/decline, or — in the rare case a concurrent order/stock update exhausted an item's stock after it was already added to the cart — that item is discovered to be out of stock at checkout.
+3. System displays the specific error; for the out-of-stock case, it flags only the affected item, offers "Notify me when available" for that SKU (see Request Restock Notification flow), and leaves the rest of the cart intact so the user can retry payment or adjust the cart.
+
+### Request Restock Notification (main flow)
+1. User (guest or logged-in) opens an out-of-stock item's card, where "Add to Cart" is replaced by "Notify me when available."
+2. User selects "Notify me when available"; system captures the user's account email (if logged in) or prompts for a manually entered email address (if guest).
+3. System records the one-time restock-notification request and confirms receipt to the user.
+4. Later, an Admin manually updates the SKU's stock, or a CSV import updates it, moving stock from zero to an available quantity.
+5. System detects the transition and sends exactly one notification email per pending request for that SKU via the email delivery provider, then marks each request complete.
 
 ### Admin CSV Catalog Import (main flow)
 1. Admin opens Catalog Management and toggles to Furniture or Building Materials.
@@ -269,7 +296,8 @@ Starter now moves to a fully custom-built backend, replacing every previously Bi
 - **Georgia payment provider — TBC E-Commerce API or Bank of Georgia (Visa/Mastercard acquiring):** Candidate primary provider for the Georgia checkout flow; exact choice between the two undecided. **Working assumption pending vendor PoC/validation — not a final commitment.**
 - **Belarus payment provider — bePaid (ЕРИП + cards):** Primary local payment method for the Belarus checkout flow. **Working assumption pending vendor PoC/validation — not a final commitment.**
 - **Russia payment provider — ЮKassa/CloudPayments:** Primary local payment method for the Russia checkout flow, **contingent on continued legal presence in Russia** — a business/legal condition, not just a technical one. **Working assumption pending vendor PoC/validation — not a final commitment.**
+- **Transactional email delivery provider (new — this rework):** Sends the one-time restock-notification email when an out-of-stock SKU transitions from zero to available stock (FR-18, UC-7). This is a genuinely new integration for Starter — it was not part of the confirmed integrations list before this rework. The specific provider (e.g., SendGrid, Mailgun, AWS SES, or an equivalent) is an **open implementation choice for the system-architect to make; it is not pre-decided here.**
 
 ## Clarifying Questions
 
-None — both remaining open points from this rework were resolved by the user: (1) catalog contents are identical across all six countries, with no per-country availability flags (see Scope & Boundaries); (2) stock (FR-15) is a single global pool per SKU, not per-country pools (see FR-15). Both are reflected directly in the document above, not left open.
+None — both remaining open points from this rework were resolved by the user: (1) catalog contents are identical across all six countries, with no per-country availability flags (see Scope & Boundaries); (2) stock (FR-15) is a single global pool per SKU, not per-country pools (see FR-15).
