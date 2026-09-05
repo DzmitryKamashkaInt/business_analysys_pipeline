@@ -3,6 +3,12 @@
 Local storage backing the `/ba-analyze` and `/ba-ask` commands defined in the `CLAUDE` project
 (`.claude/agents/ba-*.md`, `.claude/commands/ba-*.md`).
 
+This repo also hosts a second, unrelated pipeline: `/call-analyze` (`.claude/agents/call-*.md`,
+`.claude/commands/call-analyze.md`, defined directly in this repo). It turns call/meeting
+transcripts into Meeting Minutes and a Call Summary. Its working/output storage is a separate,
+OneDrive-synced folder, not `projects/` below — see
+`../Transcript analysis/README.md` (i.e. `AgenticStorage/Transcript analysis/`).
+
 Git history in this repo is the record of intermediate documentation versions — each pipeline
 stage transition (draft saved, moved to evaluation, finalized) is its own commit. Pushing to the
 `origin` remote is never automatic; it happens only when the user explicitly asks the pipeline to
